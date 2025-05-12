@@ -1,12 +1,38 @@
-# utils.py — Utility Functions for Ultra Pong Psychosis
+# utils.py — Utility Functions (Added resource_path)
 
 import pygame
 import random
 import math
+import sys # Needed for sys.frozen and sys._MEIPASS
+import os  # Needed for path joining
+
 from config import * # Import all constants
 
-# Note: The circular import issue with 'Particle' was previously fixed by
-# importing it locally within 'create_impact_particles'.
+# --- Resource Path Helper ---
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        # sys.frozen will be True if running as a bundled exe
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            base_path = sys._MEIPASS
+            # print(f"Running bundled, MEIPASS: {base_path}") # Optional debug print
+        else:
+            # Running as a normal script, use the script's directory
+            base_path = os.path.abspath(".")
+            # print(f"Running as script, base path: {base_path}") # Optional debug print
+
+        # Join the base path with the relative path provided
+        full_path = os.path.join(base_path, relative_path)
+        # print(f"Resolved path for '{relative_path}': {full_path}") # Optional debug print
+        return full_path
+
+    except Exception as e:
+        print(f"Error getting resource path for '{relative_path}': {e}")
+        # Fallback to just the relative path if something goes wrong
+        return relative_path
+
+# --- Other Utility Functions ---
 
 def get_random_crazy_color(alpha=255):
     """Generates a random vibrant color."""
@@ -18,13 +44,13 @@ def get_random_crazy_color(alpha=255):
 def draw_psychedelic_background(surface, current_time_tick):
     """Draws a dynamic, psychedelic background effect."""
     global_hue_offset = (current_time_tick * PSYCHEDELIC_HUE_SHIFT_SPEED * 10) % 360
-    band_height = 15 
+    band_height = 15
     for y_pos in range(0, SCREEN_HEIGHT, band_height):
         hue = (global_hue_offset + y_pos * 0.4 + current_time_tick * 30) % 360
         saturation = 70 + math.sin(current_time_tick * 0.2 + y_pos * 0.02) * 30
         value = 60 + math.cos(current_time_tick * 0.3 - y_pos * 0.03) * 20
         color = pygame.Color(0)
-        color.hsva = (hue, max(40, min(100, saturation)), max(40, min(100, value)), 100) 
+        color.hsva = (hue, max(40, min(100, saturation)), max(40, min(100, value)), 100)
         pygame.draw.rect(surface, color, (0, y_pos, SCREEN_WIDTH, band_height))
 
 def draw_text_adv(surface, text, size, x, y, base_color, font_type="Verdana", center_aligned=False,
@@ -53,7 +79,7 @@ def draw_text_adv(surface, text, size, x, y, base_color, font_type="Verdana", ce
     if shadow_color and shadow_offset: # Only draw shadow if specified
         text_surface_shadow = font.render(text, True, shadow_color)
         surface.blit(text_surface_shadow, (text_rect.x + shadow_offset[0], text_rect.y + shadow_offset[1]))
-    
+
     surface.blit(text_surface_main, text_rect)
     return text_rect # Return rect for click detection
 
@@ -61,12 +87,12 @@ def draw_text_adv(surface, text, size, x, y, base_color, font_type="Verdana", ce
 def create_impact_particles(x, y, particle_group, impact_type="generic", custom_color_func=None):
     """Creates particle effects at a given position with type-specific or custom colors."""
     # Import Particle class locally to avoid circular dependency with sprites.py
-    from sprites import Particle 
+    from sprites import Particle
 
     num_particles = PARTICLE_COUNT_IMPACT
     speed_range = (1, PARTICLE_SPEED_IMPACT)
     lifespan_mod = 0
-    
+
     # Default color function
     color_func = lambda: get_random_crazy_color(random.randint(180,255))
 
@@ -91,4 +117,3 @@ def create_impact_particles(x, y, particle_group, impact_type="generic", custom_
 
     for _ in range(num_particles):
         particle_group.add(Particle(x, y, color_func, speed_range=speed_range, lifespan_mod=lifespan_mod))
-
